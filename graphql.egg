@@ -1,0 +1,7 @@
+((components (extension graphql))
+ (version 1.0)
+ (licence "BSD")
+ (author "Robert C Jensen")
+ (synopsis "The GraphQL type system & query language")
+ (dependencies matchable)
+ (test-dependencies test))
