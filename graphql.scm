@@ -14,7 +14,12 @@
        (tokenize tail))
       ((_ tail ...) (tokenize-comment tail))))
 
-  (define (tokenize-name chars) 42)
+  (define (tokenize-name chars #!optional (value ""))
+    (match chars
+      (((and char (or (? char-alphabetic?) (? char-numeric?) #\_)) tail ...)
+       (tokenize-name tail (string-append value (make-string 1 char))))
+      (_ (tokenize chars))))
+
   (define (tokenize-number chars) 42)
   (define (tokenize-string chars) 42)
 
