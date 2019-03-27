@@ -8,7 +8,12 @@
       ((char tail ...)
        (tokenize-block-string tail (string-append value (make-string 1 char))))))
 
-  (define (tokenize-comment chars) 42)
+  (define (tokenize-comment chars)
+    (match-lambda
+      ((or (#\u000D #\u000A tail ...) ((or #\u000A #\u000D) tail ...))
+       (tokenize tail))
+      ((_ tail ...) (tokenize-comment tail))))
+
   (define (tokenize-name chars) 42)
   (define (tokenize-number chars) 42)
   (define (tokenize-string chars) 42)
