@@ -1,13 +1,38 @@
 (module graphql ()
-  (import matchable scheme utf8)
+  (import (chicken base) matchable scheme utf8)
 
-  ; Looking at graphql-js we need to make this a little smarter
+  (define (tokenize-block-string chars) 42)
+  (define (tokenize-comment chars) 42)
+  (define (tokenize-name chars) 42)
+  (define (tokenize-number chars) 42)
+  (define (tokenize-string chars) 42)
+
   ; See https://github.com/graphql/graphql-js/blob/8c96dc8276f2de27b8af9ffbd71a4597d483523f/src/language/lexer.js#L102-L125
   (define (tokenize chars)
-    (match chars
-      ((#\uFEFF tail ...) (cons 'UNICODE-BOM (tokenize tail)))
-      (((or #\u0009 #\u0200) tail ...) (cons 'WHITE-SPACE (tokenize tail)))
+    (match-lambda
+      ; ignored tokens
+      ((#\uFEFF tail ...) (tokenize tail))
+      (((or #\u0009 #\u0200) tail ...) (tokenize tail))
       ((or (#\u000D #\u000A tail ...) ((or #\u000A #\u000D) tail ...))
-       (cons 'LINE-TERMINATOR (tokenize tail)))
-      ((char tail ...)
-       (cons `(SOURCE-CHARACTER ,char) (tokenize tail))))))
+       (tokenize tail))
+      ; the real deal
+      ((#\! tail ...) (cons 'BANG (tokenize tail)))
+      ((#\# comment-tail ...) (tokenize-comment comment-tail))
+      ((#\$ tail ...) (cons 'DOLLAR (tokenize tail)))
+      ((#\& tail ...) (cons 'AMP (tokenize tail)))
+      ((#\( tail ...) (cons 'PAREN-L (tokenize tail)))
+      ((#\) tail ...) (cons 'PAREN-R (tokenize tail)))
+      ((#\. #\. #\. tail ...) (cons 'SPREAD (tokenize tail)))
+      ((#\: tail ...) (cons 'COLON (tokenize tail)))
+      ((#\= tail ...) (cons 'EQUALS (tokenize tail)))
+      ((#\@ tail ...) (cons 'AT (tokenize tail)))
+      ((#\[ tail ...) (cons 'BRACKET-L (tokenize tail)))
+      ((#\] tail ...) (cons 'BRACKET-R (tokenize tail)))
+      ((#\{ tail ...) (cons 'BRACE-L (tokenize tail)))
+      ((#\| tail ...) (cons 'PIPE (tokenize tail)))
+      ((#\} tail ...) (cons 'BRACE-R (tokenize tail)))
+      (((? char-alphabetic?) tail ...) (tokenize-name chars))
+      (((? char-numeric?) tail ...) (tokenize-number chars))
+      ((#\" #\" #\" tail ...) (tokenize-block-string chars))
+      ((#\" tail ...) (tokenize-string tail))
+      ((and bad-char _) (error "tokenize: unexpected character" bad-char)))))
