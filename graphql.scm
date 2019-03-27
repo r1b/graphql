@@ -1,7 +1,13 @@
 (module graphql ()
   (import (chicken base) matchable scheme utf8)
 
-  (define (tokenize-block-string chars) 42)
+  (define (tokenize-block-string chars #!optional (value ""))
+    (match chars
+      ; FIXME dedent
+      ((#\" #\" #\" tail ...) (cons '(BLOCK-STRING value) (tokenize tail)))
+      ((char tail ...)
+       (tokenize-block-string tail (string-append value (make-string 1 char))))))
+
   (define (tokenize-comment chars) 42)
   (define (tokenize-name chars) 42)
   (define (tokenize-number chars) 42)
