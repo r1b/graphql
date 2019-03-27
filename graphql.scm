@@ -18,7 +18,7 @@
     (match chars
       (((and char (or (? char-alphabetic?) (? char-numeric?) #\_)) tail ...)
        (tokenize-name tail (string-append value (make-string 1 char))))
-      (_ (tokenize chars))))
+      (_ (cons '(NAME value) (tokenize chars)))))
 
   (define (tokenize-number chars) 42)
   (define (tokenize-string chars) 42)
