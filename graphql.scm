@@ -35,4 +35,4 @@
       (((? char-numeric?) tail ...) (tokenize-number chars))
       ((#\" #\" #\" tail ...) (tokenize-block-string chars))
       ((#\" tail ...) (tokenize-string tail))
-      ((and bad-char _) (error "tokenize: unexpected character" bad-char)))))
+      (((and bad-char _) tail ...) (error "tokenize: unexpected character" bad-char)))))
