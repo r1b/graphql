@@ -2,7 +2,7 @@
   (import (chicken base) matchable scheme utf8)
 
   (define (string-append-char s . cs)
-    (apply string-append (cons s (map (lambda (c) (make-string 1 c)) cs))))
+    (apply string-append (cons s (map (cut make-string 1 <>) cs))))
 
   (define (tokenize-block-string chars #!optional (value ""))
     ; TODO dedent
