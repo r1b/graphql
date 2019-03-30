@@ -6,6 +6,7 @@
 
   (define (tokenize-block-string chars #!optional (value ""))
     ; TODO dedent
+    ; FIXME this is like wrong
     (match chars
       ((#\" #\" #\" tail ...) (cons '(BLOCK-STRING value) (tokenize tail)))
       ((char tail ...)
@@ -75,7 +76,8 @@
 
      chars ""))
 
-  (define (tokenize-string chars) 42)
+  (define (tokenize-string chars)
+    )
 
   ; See https://github.com/graphql/graphql-js/blob/8c96dc8276f2de27b8af9ffbd71a4597d483523f/src/language/lexer.js#L102-L125
   ; TODO: Preserve line / character for errors
@@ -93,6 +95,7 @@
       ((#\& tail ...) (cons '(AMP) (tokenize tail)))
       ((#\( tail ...) (cons '(PAREN-L) (tokenize tail)))
       ((#\) tail ...) (cons '(PAREN-R) (tokenize tail)))
+      ; FIXME handle dot followed by invalid char
       ((#\. #\. #\. tail ...) (cons '(SPREAD) (tokenize tail)))
       ((#\: tail ...) (cons '(COLON) (tokenize tail)))
       ((#\= tail ...) (cons '(EQUALS) (tokenize tail)))
