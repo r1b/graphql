@@ -1,12 +1,15 @@
 (module graphql ()
   (import (chicken base) matchable scheme utf8)
 
+  (define (string-append-char s . cs)
+    (apply string-append (cons s (map (lambda (c) (make-string 1 c)) cs))))
+
   (define (tokenize-block-string chars #!optional (value ""))
     ; TODO dedent
     (match chars
       ((#\" #\" #\" tail ...) (cons '(BLOCK-STRING value) (tokenize tail)))
       ((char tail ...)
-       (tokenize-block-string tail (string-append value (make-string 1 char))))))
+       (tokenize-block-string tail (string-append-char value char)))))
 
   (define (tokenize-comment chars)
     (match-lambda
@@ -17,28 +20,42 @@
   (define (tokenize-name chars #!optional (value ""))
     (match chars
       (((and char (or (? char-alphabetic?) (? char-numeric?) #\_)) tail ...)
-       (tokenize-name tail (string-append value (make-string 1 char))))
+       (tokenize-name tail (string-append-char value char)))
       ((_ tail ...) (cons '(NAME value) (tokenize tail)))))
 
-  (define (tokenize-digits chars value) 42)
+  (define (tokenize-digits chars value)
+    ((compose
+       (lambda (chars value)
+         (match chars
+           (((and digit (? char-numeric?)) tail ...)
+            (tokenize-digits tail (string-append-char tail digit)))
+           (_ (cons '(NUMBER (string->number value)) (tokenize chars)))))
+
+       (lambda (chars value)
+         (match chars
+           (((and digit (? char-numeric?)) tail ...)
+            (values tail (string-append-char tail digit)))
+           (((and bad-char _) tail ...) (error "Unexpected character" bad-char)))))
+
+     chars value))
 
   (define (tokenize-number chars)
     ((compose
        (lambda (chars value)
          (match chars
            (((and sign (or #\+ #\-)) tail ...)
-            (tokenize-digits tail (string-append value (make-string 1 sign)))
+            (tokenize-digits tail (string-append-char value sign))
             (_ (tokenize-digits chars value)))))
 
        (lambda (chars value)
          (match chars
            (((and char (or #\E #\e)) tail ...)
-            (values tail (string-append value (make-string 1 char))))
+            (values tail (string-append-char value char)))
            (_ (tokenize-digits chars value))))
 
        (lambda (chars value)
          (match chars
-           ((#\. tail ...) (tokenize-digits tail (string-append value ".")))
+           ((#\. tail ...) (tokenize-digits tail (string-append-char value #\.)))
            (_ (values chars value))))
 
        (lambda (chars value)
@@ -47,19 +64,21 @@
             (if (char=? digit #\0)
                 (if (char-numeric? (car tail))
                     (error "Unexpected digit after 0" (car tail))
-                    (values tail "0"))
-                (tokenize-digits tail (string-append value digit))))
+                    (values tail (string-append-char value digit)))
+                (tokenize-digits tail (string-append-char value digit))))
            (_ (values chars value))))
 
        (lambda (chars value)
          (match chars
-           ((#\- tail ...) (values tail (string-append value "-")))
+           ((#\- tail ...) (values tail (string-append-char value #\-)))
            (_ (values chars value)))))
+
      chars ""))
 
   (define (tokenize-string chars) 42)
 
   ; See https://github.com/graphql/graphql-js/blob/8c96dc8276f2de27b8af9ffbd71a4597d483523f/src/language/lexer.js#L102-L125
+  ; TODO: Preserve line / character for errors
   (define (tokenize chars)
     (match-lambda
       ; ignored tokens
@@ -87,4 +106,4 @@
       (((or #\- (? char-numeric?)) tail ...) (tokenize-number chars))
       ((#\" #\" #\" tail ...) (tokenize-block-string chars))
       ((#\" tail ...) (tokenize-string tail))
-      (((and bad-char _) tail ...) (error "tokenize: unexpected character" bad-char)))))
+      (((and bad-char _) tail ...) (error "Unexpected character" bad-char)))))
