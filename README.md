@@ -1,3 +1,3 @@
-# graphql-scm
+# graphql
 
 GraphQL via Chicken Scheme
