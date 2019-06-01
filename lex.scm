@@ -1,5 +1,5 @@
-(module lex (lex)
-  (import (chicken base) clojurian matchable scheme utf8)
+(module lex (lex lex-name)
+  (import (chicken base) (chicken format) (clojurian syntax) matchable scheme utf8)
 
   ; TODO:
   ; * String escapes
@@ -19,45 +19,47 @@
 
   ; --------------------------------------------------------------------------
 
-  (define (lex-comment chars)
-    (match-lambda
+  (define (lex-comment chars line position)
+    (match chars
       ((or (#\u000D #\u000A tail ...) ((or #\u000A #\u000D) tail ...))
        (lex tail))
-      ((_ tail ...) (lex-comment tail))))
+      ((#\u000D #\u000A tail ...) (lex-comment tail line (+ position 2)))
+      (((or #\u000A #\u000D) tail ...) (lex-comment tail line (add1 position)))
+      ((_ tail ...) (lex-comment tail line (add1 position)))))
 
-  (define (lex-name chars #!optional (value ""))
+  (define (lex-name chars line position #!optional (value ""))
     (match chars
       (((and char (or (? char-alphabetic?) (? char-numeric?) #\_)) tail ...)
-       (lex-name tail (string-append-char value char)))
-      ((_ tail ...) (cons '(NAME value) (lex tail)))))
+       (lex-name tail line (add1 position) (string-append-char value char)))
+      (_ (cons `(NAME ,value) (lex chars line position)))))
 
-  (define (lex-digits chars value)
+  (define (lex-digits chars line position #!optional (value ""))
     (->* (values chars value)
 
-         (lambda (chars value)
+         ((lambda (chars value)
            (match chars
              (((and digit (? char-numeric?)) tail ...)
               (values tail (string-append-char tail digit)))
-             ((_ tail ...) (lex-error line position))))
+             ((_ tail ...) (lex-error line position)))))
 
-         (lambda (chars value)
+         ((lambda (chars value)
            (match chars
              (((and digit (? char-numeric?)) tail ...)
-              (lex-digits tail (string-append-char tail digit)))
-             (_ (cons '(NUMBER (string->number value)) (lex chars)))))))
+              (lex-digits tail line (add1 position) (string-append-char tail digit)))
+             (_ (cons '(NUMBER (string->number value)) (lex chars))))))))
 
-  (define (lex-number chars line position)
+  (define (lex-number chars line position #!optional (value ""))
     (->* (values chars "" line position)
 
-         (lambda (chars value line position)
+         ((lambda (chars value line position)
            (match chars
              ((#\- tail ...) (values tail
                                      (string-append-char value #\-)
                                      line
-                                     (add1 position))))
-           (_ (values chars value line position))))
+                                     (add1 position)))
+             (_ (values chars value line position)))))
 
-         (lambda (chars value line position)
+         ((lambda (chars value line position)
            (match chars
              (((and digit (? char-numeric?)) tail ...)
               (if (char=? digit #\0)
@@ -71,45 +73,44 @@
                               (string-append-char value digit)
                               line
                               (add1 position))))
-             (_ (values chars value line position))))
+             (_ (values chars value line position)))))
 
-         (lambda (chars value line position)
+         ((lambda (chars value line position)
            (match chars
              ((#\. tail ...) (lex-digits tail
                                          (string-append-char value #\.)
                                          line
                                          (add1 position)))
-             (_ (values chars value line position))))
+             (_ (values chars value line position)))))
 
-         (lambda (chars value line position)
+         ((lambda (chars value line position)
            (match chars
              (((and char (or #\E #\e)) tail ...)
               (values tail
                       (string-append-char value char)
                       line
                       (add1 position)))
-             (_ (lex-digits chars value line position))))
+             (_ (lex-digits chars value line position)))))
 
-         (lambda (chars value line position)
+         ((lambda (chars value line position)
            (match chars
              (((and sign (or #\+ #\-)) tail ...)
               (lex-digits tail
                           (string-append-char value sign)
                           line
-                          (add1 position))
+                          (add1 position)))
               (_ (lex-digits chars value line position)))))))
-
 
 
   (define (lex-string chars line position #!optional (value ""))
     (match chars
-      (((? (-> source-character? not)) _ ...)
+      (((? (compose not source-character?)) _ ...)
        (lex-error line position "Invalid character in string"))
       ((or ((or #\u000A #\u000D) _ ...) ())
        (lex-error line position "Unterminated string"))
       ((#\" tail ...) (cons '(STRING value) (lex tail line (add1 position))))
       ((char tail ...)
-       (lex-string tail line (add1 position (string-append-char value char))))))
+       (lex-string tail line (add1 position) (string-append-char value char)))))
 
   (define (lex-spread chars line position)
     (match chars
@@ -118,13 +119,11 @@
 
   ; See https://github.com/graphql/graphql-js/blob/master/src/language/lexer.js
   (define (lex chars #!optional (line 1) (position 0))
-    (match-lambda
-      ; ignored tokens
+    (match chars
       ((#\uFEFF tail ...) (lex tail line (add1 position)))
-      (((or #\u0009 #\u0200 #\u002C) tail ...) (lex tail line (add1 position)))
+      (((or #\u0009 #\u0020 #\u002C) tail ...) (lex tail line (add1 position)))
       ((or (#\u000D #\u000A tail ...) ((or #\u000A #\u000D) tail ...))
        (lex tail (add1 line) 0))
-      ; the real deal
       ((#\! tail ...) (cons '(BANG) (lex tail line (add1 position))))
       ((#\# comment-tail ...) (lex-comment comment-tail line (add1 position)))
       ((#\$ tail ...) (cons '(DOLLAR) (lex tail line (add1 position))))
@@ -143,4 +142,5 @@
       (((? char-alphabetic?) _ ...) (lex-name chars line position))
       (((or #\- (? char-numeric?)) _ ...) (lex-number chars line position))
       ((#\" tail ...) (lex-string tail line (add1 position)))
+      ('() '())
       ((_ ...) (lex-error line position)))))
