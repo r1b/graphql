@@ -108,7 +108,7 @@
        (lex-error line position "Invalid character in string"))
       ((or ((or #\u000A #\u000D) _ ...) ())
        (lex-error line position "Unterminated string"))
-      ((#\" tail ...) (cons '(STRING value) (lex tail line (add1 position))))
+      ((#\" tail ...) (cons `(STRING ,value) (lex tail line (add1 position))))
       ((char tail ...)
        (lex-string tail line (add1 position) (string-append-char value char)))))
 
