@@ -52,57 +52,61 @@
 
            (lex-digits))))
 
-  ; FIXME: Distinguish b/t float and int tokens
   (define (lex-number chars line position #!optional (value ""))
-    (->* (values chars line position value)
+    (let ((floatp #f))
+      (->* (values chars line position value)
 
-         ((lambda (chars line position value)
-           (match chars
-             ((#\- tail ...) (values tail
-                                     line
-                                     (add1 position)
-                                     (string-append-char value #\-)))
-             (_ (values chars line position value)))))
+           ((lambda (chars line position value)
+              (match chars
+                ((#\- tail ...) (values tail
+                                        line
+                                        (add1 position)
+                                        (string-append-char value #\-)))
+                (_ (values chars line position value)))))
 
-         ((lambda (chars line position value)
-           (match chars
-             (((and digit (? char-numeric?)) tail ...)
-              (if (char=? digit #\0)
-                  (if (char-numeric? (car tail))
-                      (lex-error line position)
-                      (values tail
-                              line
-                              (add1 position)
-                              (string-append-char value digit)))
-                  (lex-digits chars
-                              line
-                              position
-                              value)))
-             (_ (values chars line position value)))))
+           ((lambda (chars line position value)
+              (match chars
+                (((and digit (? char-numeric?)) tail ...)
+                 (if (char=? digit #\0)
+                     (if (char-numeric? (car tail))
+                         (lex-error line position)
+                         (values tail
+                                 line
+                                 (add1 position)
+                                 (string-append-char value digit)))
+                     (lex-digits chars
+                                 line
+                                 position
+                                 value)))
+                (_ (values chars line position value)))))
 
-         ((lambda (chars line position value)
-           (match chars
-             ((#\. tail ...) (lex-digits tail
-                                         line
-                                         (add1 position)
-                                         (string-append-char value #\.)))
-             (_ (values chars line position value)))))
-
-         ((lambda (chars line position value)
-            (match chars
-              (((and char (or #\E #\e)) tail ...)
-               (if (or (char=? (car tail) #\+)
-                       (char=? (car tail) #\-))
-                   (lex-digits (cdr tail)
+           ((lambda (chars line position value)
+              (match chars
+                ((#\. tail ...)
+                 (begin
+                   (set! floatp #t)
+                   (lex-digits tail
                                line
-                               (+ position 2)
-                               (string-append-char value char (car tail)))
-                   (lex-digits tail line (add1 position) (string-append-char value char))))
-              (_ (values chars line position value)))))
+                               (add1 position)
+                               (string-append-char value #\.))))
+                (_ (values chars line position value)))))
 
-         ((lambda (chars line position value)
-           (cons `(NUMBER ,(string->number value)) (lex chars line position))))))
+           ((lambda (chars line position value)
+              (match chars
+                (((and char (or #\E #\e)) tail ...)
+                 (if (or (char=? (car tail) #\+)
+                         (char=? (car tail) #\-))
+                     (lex-digits (cdr tail)
+                                 line
+                                 (+ position 2)
+                                 (string-append-char value char (car tail)))
+                     (lex-digits tail line (add1 position) (string-append-char value char))))
+                (_ (values chars line position value)))))
 
+           ((lambda (chars line position value)
+              (cons `(,(if floatp 'FLOAT 'INTEGER)
+                      ,(string->number value))
+                    (lex chars line position)))))))
 
   (define (lex-string chars line position #!optional (value ""))
     (match chars
