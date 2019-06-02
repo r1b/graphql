@@ -6,12 +6,8 @@
   ; * Block strings
   ; * Improve lex-error
   ;     * Indicate the irritant and surrounding context
-  ; * Remove `string-append-char` - accumulate a list of chars
 
   ; --------------------------------------------------------------------------
-
-  (define (string-append-char s . cs)
-    (apply string-append (cons s (map (cut make-string 1 <>) cs))))
 
   (define (source-character? char)
     (or (char>=? char #\u0020)
@@ -30,19 +26,19 @@
       (((or #\u000A #\u000D) tail ...) (lex-comment tail line (add1 position)))
       ((_ tail ...) (lex-comment tail line (add1 position)))))
 
-  (define (lex-name chars line position #!optional (value ""))
+  (define (lex-name chars line position #!optional (value '()))
     (match chars
       (((and char (or (? char-alphabetic?) (? char-numeric?) #\_)) tail ...)
-       (lex-name tail line (add1 position) (string-append-char value char)))
-      (_ (cons `(NAME ,value) (lex chars line position)))))
+       (lex-name tail line (add1 position) (append value `(,char))))
+      (_ (cons `(NAME ,(list->string value)) (lex chars line position)))))
 
   ; FIXME: DRY
-  (define (lex-digits chars line position #!optional (value ""))
+  (define (lex-digits chars line position #!optional (value '()))
     (letrec ((lex-digits
                (lambda (chars line position value)
                  (match chars
                    (((and digit (? char-numeric?)) tail ...)
-                    (lex-digits tail line (add1 position) (string-append-char value digit)))
+                    (lex-digits tail line (add1 position) (append value `(,digit))))
                    (_ (values chars line position value))))))
 
       (->* (values chars line position value)
@@ -50,12 +46,12 @@
            ((lambda (chars line position value)
               (match chars
                 (((and digit (? char-numeric?)) tail ...)
-                 (values tail line (add1 position) (string-append-char value digit)))
+                 (values tail line (add1 position) (append value `(,digit))))
                 (_ (lex-error line position)))))
 
            (lex-digits))))
 
-  (define (lex-number chars line position #!optional (value ""))
+  (define (lex-number chars line position #!optional (value '()))
     (let ((floatp #f))
       (->* (values chars line position value)
 
@@ -64,7 +60,7 @@
                 ((#\- tail ...) (values tail
                                         line
                                         (add1 position)
-                                        (string-append-char value #\-)))
+                                        (append value `(,#\-))))
                 (_ (values chars line position value)))))
 
            ((lambda (chars line position value)
@@ -76,7 +72,7 @@
                          (values tail
                                  line
                                  (add1 position)
-                                 (string-append-char value digit)))
+                                 (append value `(,digit))))
                      (lex-digits chars
                                  line
                                  position
@@ -91,7 +87,7 @@
                    (lex-digits tail
                                line
                                (add1 position)
-                               (string-append-char value #\.))))
+                               (append value `(,#\.)))))
                 (_ (values chars line position value)))))
 
            ((lambda (chars line position value)
@@ -102,23 +98,23 @@
                      (lex-digits (cdr tail)
                                  line
                                  (+ position 2)
-                                 (string-append-char value char (car tail)))
-                     (lex-digits tail line (add1 position) (string-append-char value char))))
+                                 (append value `(,char ,(car tail))))
+                     (lex-digits tail line (add1 position) (append value `(,char)))))
                 (_ (values chars line position value)))))
 
            ((lambda (chars line position value)
-              (cons `(,(if floatp 'FLOAT 'INTEGER) ,value)
+              (cons `(,(if floatp 'FLOAT 'INTEGER) ,(list->string value))
                     (lex chars line position)))))))
 
-  (define (lex-string chars line position #!optional (value ""))
+  (define (lex-string chars line position #!optional (value '()))
     (match chars
       (((? (compose not source-character?)) _ ...)
        (lex-error line position "Invalid character in string"))
       ((or ((or #\u000A #\u000D) _ ...) ())
        (lex-error line position "Unterminated string"))
-      ((#\" tail ...) (cons `(STRING ,value) (lex tail line (add1 position))))
+      ((#\" tail ...) (cons `(STRING ,(list->string value)) (lex tail line (add1 position))))
       ((char tail ...)
-       (lex-string tail line (add1 position) (string-append-char value char)))))
+       (lex-string tail line (add1 position) (append value `(,char))))))
 
   (define (lex-spread chars line position)
     (match chars
