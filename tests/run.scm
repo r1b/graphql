@@ -46,6 +46,18 @@ query Foo(a: 0, b: -2, c: 3.4, d: 3.5e10, e: 3.5e+10, f: 3.5E-4) {
 END
   ))
 
+(define punctuators-query (string->list #<<END
+union Whatsit = Who | Dat
+type Buzz & implements Qux {}
+
+query Foo($n: Int = 1, $things: [String]) {
+    foo {
+        bar @baz()
+    }
+}
+END
+  ))
+
 (test-begin)
 (test-group "lex"
   (test "lex-name"
@@ -127,5 +139,46 @@ END
           (NAME ,"bar")
           (BRACE-R)
           (BRACE-R))
-        (lex numbers-query)))
+        (lex numbers-query))
+  (test "misc punctuators"
+        `((NAME ,"union")
+          (NAME ,"Whatsit")
+          (EQUALS)
+          (NAME ,"Who")
+          (PIPE)
+          (NAME ,"Dat")
+          (NAME ,"type")
+          (NAME ,"Buzz")
+          (AMP)
+          (NAME ,"implements")
+          (NAME ,"Qux")
+          (BRACE-L)
+          (BRACE-R)
+          (NAME ,"query")
+          (NAME ,"Foo")
+          (PAREN-L)
+          (DOLLAR)
+          (NAME ,"n")
+          (COLON)
+          (NAME ,"Int")
+          (EQUALS)
+          (INTEGER 1)
+          (DOLLAR)
+          (NAME ,"things")
+          (COLON)
+          (BRACKET-L)
+          (NAME ,"String")
+          (BRACKET-R)
+          (PAREN-R)
+          (BRACE-L)
+          (NAME "foo")
+          (BRACE-L)
+          (NAME "bar")
+          (AT)
+          (NAME "baz")
+          (PAREN-L)
+          (PAREN-R)
+          (BRACE-R)
+          (BRACE-R))
+        (lex punctuators-query)))
 (test-end)
