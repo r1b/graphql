@@ -121,7 +121,7 @@
   (define (lex-spread chars line position)
     (match chars
       ((#\. #\. tail ...) (cons '(SPREAD) (lex tail line (+ position 2))))
-      ((_ tail ...) (lex-error line position))))
+      (_ (lex-error line position))))
 
   ; See https://github.com/graphql/graphql-js/blob/master/src/language/lexer.js
   (define (lex chars #!optional (line 1) (position 0))
@@ -149,4 +149,4 @@
       (((or #\- (? char-numeric?)) _ ...) (lex-number chars line position))
       ((#\" tail ...) (lex-string tail line (add1 position)))
       ('() '())
-      ((_ ...) (lex-error line position)))))
+      (_ (lex-error line position)))))
