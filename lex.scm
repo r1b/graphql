@@ -33,73 +33,75 @@
        (lex-name tail line (add1 position) (string-append-char value char)))
       (_ (cons `(NAME ,value) (lex chars line position)))))
 
+  ; FIXME: DRY
   (define (lex-digits chars line position #!optional (value ""))
-    (->* (values chars value)
+    (letrec ((lex-digits
+               (lambda (chars line position value)
+                 (match chars
+                   (((and digit (? char-numeric?)) tail ...)
+                    (lex-digits tail line (add1 position) (string-append-char value digit)))
+                   (_ (values chars line position value))))))
 
-         ((lambda (chars value)
-           (match chars
-             (((and digit (? char-numeric?)) tail ...)
-              (values tail (string-append-char tail digit)))
-             ((_ tail ...) (lex-error line position)))))
+      (->* (values chars line position value)
 
-         ((lambda (chars value)
-           (match chars
-             (((and digit (? char-numeric?)) tail ...)
-              (lex-digits tail line (add1 position) (string-append-char tail digit)))
-             (_ (cons '(NUMBER (string->number value)) (lex chars))))))))
+           ((lambda (chars line position value)
+              (match chars
+                (((and digit (? char-numeric?)) tail ...)
+                 (values tail line (add1 position) (string-append-char value digit)))
+                (_ (lex-error line position)))))
 
+           (lex-digits))))
+
+  ; FIXME: Distinguish b/t float and int tokens
   (define (lex-number chars line position #!optional (value ""))
-    (->* (values chars "" line position)
+    (->* (values chars line position value)
 
-         ((lambda (chars value line position)
+         ((lambda (chars line position value)
            (match chars
              ((#\- tail ...) (values tail
-                                     (string-append-char value #\-)
                                      line
-                                     (add1 position)))
-             (_ (values chars value line position)))))
+                                     (add1 position)
+                                     (string-append-char value #\-)))
+             (_ (values chars line position value)))))
 
-         ((lambda (chars value line position)
+         ((lambda (chars line position value)
            (match chars
              (((and digit (? char-numeric?)) tail ...)
               (if (char=? digit #\0)
                   (if (char-numeric? (car tail))
                       (lex-error line position)
                       (values tail
-                              (string-append-char value digit)
                               line
-                              (add1 position)))
-                  (lex-digits tail
-                              (string-append-char value digit)
+                              (add1 position)
+                              (string-append-char value digit)))
+                  (lex-digits chars
                               line
-                              (add1 position))))
-             (_ (values chars value line position)))))
+                              position
+                              value)))
+             (_ (values chars line position value)))))
 
-         ((lambda (chars value line position)
+         ((lambda (chars line position value)
            (match chars
              ((#\. tail ...) (lex-digits tail
-                                         (string-append-char value #\.)
                                          line
-                                         (add1 position)))
-             (_ (values chars value line position)))))
+                                         (add1 position)
+                                         (string-append-char value #\.)))
+             (_ (values chars line position value)))))
 
-         ((lambda (chars value line position)
-           (match chars
-             (((and char (or #\E #\e)) tail ...)
-              (values tail
-                      (string-append-char value char)
-                      line
-                      (add1 position)))
-             (_ (lex-digits chars value line position)))))
+         ((lambda (chars line position value)
+            (match chars
+              (((and char (or #\E #\e)) tail ...)
+               (if (or (char=? (car tail) #\+)
+                       (char=? (car tail) #\-))
+                   (lex-digits (cdr tail)
+                               line
+                               (+ position 2)
+                               (string-append-char value char (car tail)))
+                   (lex-digits tail line (add1 position) (string-append-char value char))))
+              (_ (values chars line position value)))))
 
-         ((lambda (chars value line position)
-           (match chars
-             (((and sign (or #\+ #\-)) tail ...)
-              (lex-digits tail
-                          (string-append-char value sign)
-                          line
-                          (add1 position)))
-              (_ (lex-digits chars value line position)))))))
+         ((lambda (chars line position value)
+           (cons `(NUMBER ,(string->number value)) (lex chars line position))))))
 
 
   (define (lex-string chars line position #!optional (value ""))
