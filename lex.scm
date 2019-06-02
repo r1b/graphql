@@ -4,6 +4,9 @@
   ; TODO:
   ; * String escapes
   ; * Block strings
+  ; * Improve lex-error
+  ;     * Indicate the irritant and surrounding context
+  ; * Remove `string-append-char` - accumulate a list of chars
 
   ; --------------------------------------------------------------------------
 
@@ -104,8 +107,7 @@
                 (_ (values chars line position value)))))
 
            ((lambda (chars line position value)
-              (cons `(,(if floatp 'FLOAT 'INTEGER)
-                      ,(string->number value))
+              (cons `(,(if floatp 'FLOAT 'INTEGER) ,value)
                     (lex chars line position)))))))
 
   (define (lex-string chars line position #!optional (value ""))
@@ -120,7 +122,7 @@
 
   (define (lex-spread chars line position)
     (match chars
-      ((#\. #\. tail ...) (cons '(SPREAD) (lex tail line (+ position 2))))
+      ((#\. #\. tail ...) (cons 'SPREAD (lex tail line (+ position 2))))
       (_ (lex-error line position))))
 
   ; See https://github.com/graphql/graphql-js/blob/master/src/language/lexer.js
@@ -130,21 +132,21 @@
       (((or #\u0009 #\u0020 #\u002C) tail ...) (lex tail line (add1 position)))
       ((or (#\u000D #\u000A tail ...) ((or #\u000A #\u000D) tail ...))
        (lex tail (add1 line) 0))
-      ((#\! tail ...) (cons '(BANG) (lex tail line (add1 position))))
+      ((#\! tail ...) (cons 'BANG (lex tail line (add1 position))))
       ((#\# comment-tail ...) (lex-comment comment-tail line (add1 position)))
-      ((#\$ tail ...) (cons '(DOLLAR) (lex tail line (add1 position))))
-      ((#\& tail ...) (cons '(AMP) (lex tail line (add1 position))))
-      ((#\( tail ...) (cons '(PAREN-L) (lex tail line (add1 position))))
-      ((#\) tail ...) (cons '(PAREN-R) (lex tail line (add1 position))))
+      ((#\$ tail ...) (cons 'DOLLAR (lex tail line (add1 position))))
+      ((#\& tail ...) (cons 'AMP (lex tail line (add1 position))))
+      ((#\( tail ...) (cons 'PAREN-L (lex tail line (add1 position))))
+      ((#\) tail ...) (cons 'PAREN-R (lex tail line (add1 position))))
       ((#\. tail ...) (lex-spread tail line (add1 position)))
-      ((#\: tail ...) (cons '(COLON) (lex tail line (add1 position))))
-      ((#\= tail ...) (cons '(EQUALS) (lex tail line (add1 position))))
-      ((#\@ tail ...) (cons '(AT) (lex tail line (add1 position))))
-      ((#\[ tail ...) (cons '(BRACKET-L) (lex tail line (add1 position))))
-      ((#\] tail ...) (cons '(BRACKET-R) (lex tail line (add1 position))))
-      ((#\{ tail ...) (cons '(BRACE-L) (lex tail line (add1 position))))
-      ((#\| tail ...) (cons '(PIPE) (lex tail line (add1 position))))
-      ((#\} tail ...) (cons '(BRACE-R) (lex tail line (add1 position))))
+      ((#\: tail ...) (cons 'COLON (lex tail line (add1 position))))
+      ((#\= tail ...) (cons 'EQUALS (lex tail line (add1 position))))
+      ((#\@ tail ...) (cons 'AT (lex tail line (add1 position))))
+      ((#\[ tail ...) (cons 'BRACKET-L (lex tail line (add1 position))))
+      ((#\] tail ...) (cons 'BRACKET-R (lex tail line (add1 position))))
+      ((#\{ tail ...) (cons 'BRACE-L (lex tail line (add1 position))))
+      ((#\| tail ...) (cons 'PIPE (lex tail line (add1 position))))
+      ((#\} tail ...) (cons 'BRACE-R (lex tail line (add1 position))))
       (((? char-alphabetic?) _ ...) (lex-name chars line position))
       (((or #\- (? char-numeric?)) _ ...) (lex-number chars line position))
       ((#\" tail ...) (lex-string tail line (add1 position)))

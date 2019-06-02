@@ -63,122 +63,122 @@ END
   (test "lex-name"
         `((NAME ,"query")
           (NAME ,"Foo")
-          (BRACE-L)
+          BRACE-L
           (NAME ,"foo")
-          (BRACE-L)
+          BRACE-L
           (NAME ,"bar")
-          (BRACE-R)
-          (BRACE-R))
+          BRACE-R
+          BRACE-R)
         (lex names-query))
 
   (test "lex-comment"
         `((NAME ,"query")
           (NAME ,"Foo")
-          (BRACE-L)
+          BRACE-L
           (NAME ,"foo")
-          (BRACE-L)
+          BRACE-L
           (NAME ,"bar")
-          (BRACE-R)
-          (BRACE-R))
+          BRACE-R
+          BRACE-R)
         (lex comment-query))
 
   (test "lex-string"
         `((NAME ,"query")
           (NAME ,"Foo")
-          (PAREN-L)
+          PAREN-L
           (NAME ,"baz")
-          (COLON)
+          COLON
           (STRING ,"buzz")
-          (PAREN-R)
-          (BRACE-L)
+          PAREN-R
+          BRACE-L
           (NAME ,"foo")
-          (BRACE-L)
+          BRACE-L
           (NAME ,"bar")
-          (BRACE-R)
-          (BRACE-R))
+          BRACE-R
+          BRACE-R)
         (lex string-query))
 
   (test "lex-spread"
         `((NAME ,"query")
           (NAME ,"Foo")
-          (BRACE-L)
+          BRACE-L
           (NAME ,"foo")
-          (BRACE-L)
-          (SPREAD)
+          BRACE-L
+          SPREAD
           (NAME ,"Bar_baz")
-          (BRACE-R)
-          (BRACE-R))
+          BRACE-R
+          BRACE-R)
         (lex spread-query))
 
   (test "lex-number"
         `((NAME ,"query")
           (NAME ,"Foo")
-          (PAREN-L)
+          PAREN-L
           (NAME ,"a")
-          (COLON)
-          (INTEGER ,0)
+          COLON
+          (INTEGER ,"0")
           (NAME ,"b")
-          (COLON)
-          (INTEGER ,-2)
+          COLON
+          (INTEGER ,"-2")
           (NAME ,"c")
-          (COLON)
-          (FLOAT ,3.4)
+          COLON
+          (FLOAT ,"3.4")
           (NAME ,"d")
-          (COLON)
-          (FLOAT ,35000000000.0)
+          COLON
+          (FLOAT ,"3.5e10")
           (NAME ,"e")
-          (COLON)
-          (FLOAT ,35000000000.0)
+          COLON
+          (FLOAT ,"3.5e+10")
           (NAME ,"f")
-          (COLON)
-          (FLOAT ,0.00035)
-          (PAREN-R)
-          (BRACE-L)
+          COLON
+          (FLOAT ,"3.5E-4")
+          PAREN-R
+          BRACE-L
           (NAME ,"foo")
-          (BRACE-L)
+          BRACE-L
           (NAME ,"bar")
-          (BRACE-R)
-          (BRACE-R))
+          BRACE-R
+          BRACE-R)
         (lex numbers-query))
   (test "misc punctuators"
         `((NAME ,"union")
           (NAME ,"Whatsit")
-          (EQUALS)
+          EQUALS
           (NAME ,"Who")
-          (PIPE)
+          PIPE
           (NAME ,"Dat")
           (NAME ,"type")
           (NAME ,"Buzz")
-          (AMP)
+          AMP
           (NAME ,"implements")
           (NAME ,"Qux")
-          (BRACE-L)
-          (BRACE-R)
+          BRACE-L
+          BRACE-R
           (NAME ,"query")
           (NAME ,"Foo")
-          (PAREN-L)
-          (DOLLAR)
+          PAREN-L
+          DOLLAR
           (NAME ,"n")
-          (COLON)
+          COLON
           (NAME ,"Int")
-          (EQUALS)
-          (INTEGER 1)
-          (DOLLAR)
+          EQUALS
+          (INTEGER "1")
+          DOLLAR
           (NAME ,"things")
-          (COLON)
-          (BRACKET-L)
+          COLON
+          BRACKET-L
           (NAME ,"String")
-          (BRACKET-R)
-          (PAREN-R)
-          (BRACE-L)
+          BRACKET-R
+          PAREN-R
+          BRACE-L
           (NAME "foo")
-          (BRACE-L)
+          BRACE-L
           (NAME "bar")
-          (AT)
+          AT
           (NAME "baz")
-          (PAREN-L)
-          (PAREN-R)
-          (BRACE-R)
-          (BRACE-R))
+          PAREN-L
+          PAREN-R
+          BRACE-R
+          BRACE-R)
         (lex punctuators-query)))
 (test-end)
