@@ -1,4 +1,4 @@
-(module lex (lex lex-name)
+(module lexer (lex)
   (import (chicken base) (chicken format) (clojurian syntax) matchable scheme utf8)
 
   ; TODO:
@@ -6,6 +6,8 @@
   ; * Block strings
   ; * Improve lex-error
   ;     * Indicate the irritant and surrounding context
+  ; * Test error cases
+  ; * Use a vector! 
 
   ; --------------------------------------------------------------------------
 

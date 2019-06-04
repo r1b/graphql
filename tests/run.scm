@@ -1,5 +1,5 @@
-(include "../lex")
-(import lex test utf8)
+(include "../lexer")
+(import lexer test utf8)
 
 (define names-query (string->list #<<END
 query Foo {

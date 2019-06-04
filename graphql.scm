@@ -1,3 +1,3 @@
-(include "lex")
+(include "lexer")
 (module graphql ()
-  (import lex))
+  (import lexer))
