@@ -3,6 +3,6 @@
  (license "BSD")
  (author "Robert C Jensen <robert.cole.jensen@gmail.com>")
  (synopsis "The GraphQL type system & query language")
- (component-options (csc-options "-O3" "-specialize" "-strict-types"))
+ (component-options (csc-options "-O3" "-specialize"))
  (dependencies matchable typed-records utf8)
  (test-dependencies test))
